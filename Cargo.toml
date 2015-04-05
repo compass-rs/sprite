@@ -1,0 +1,4 @@
+[package]
+name = "sprite"
+version = "0.0.1"
+authors = ["Marius Seritan <github@seritan.net>"]
