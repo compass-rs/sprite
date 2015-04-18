@@ -3,6 +3,8 @@ name = "compass-sprite"
 version = "0.0.1"
 authors = ["Marius Seritan <github@seritan.net>"]
 keywords = ["compass","sprite"]
+description = "Implement sprites for CSS usage on a web page"
+
 
 license = "MIT"
 readme = "README.md"
