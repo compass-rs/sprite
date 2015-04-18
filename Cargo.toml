@@ -13,4 +13,4 @@ homepage = "https://github.com/compass-rs/sprite"
 name = "sprite"
 
 [dependencies.image]
-git = "https://github.com/PistonDevelopers/image"
+version = "0.3.7"
