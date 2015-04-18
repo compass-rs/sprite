@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path,PathBuf};
 use image_lib;
 use std::cmp;
 use image_lib::GenericImage;
 use image_lib::imageops::overlay;
+use std::collections::{HashMap,hash_map};
 
 /// Information about one of the embedded images.
 #[derive(Debug)]
@@ -18,23 +19,25 @@ pub struct SpriteRegion {
     pub name: String
 }
 
-// Hold information about a generated sprite map.
+/// The sprite map holding all the images for a given invocation.
 pub struct SpriteMap {
     pub width: u32,
     pub height: u32,
-    pub regions: Vec<SpriteRegion>,
+    pub regions: HashMap<String, SpriteRegion>,
     pub url: String
 }
 
 impl SpriteMap {
 
-    // Read all the image sizes and initialize the regions
-    // with the proper layout information.
-    // Returns (width, height, regions)
-    fn layout(glob:&str) -> (u32,u32,Vec<SpriteRegion>) {
+    /// Layout all the image matching the given glob.
+    /// The code reads the images, gets their dimensions and initialize the regions
+    /// with the proper layout information. Right now all the images
+    /// are assembled in an horizontal strip.
+    /// Returns (width, height, regions)
+    fn layout(glob:&str) -> (u32,u32,HashMap<String,SpriteRegion>) {
         let paths = fs::read_dir(&Path::new(glob)).unwrap();
 
-        let mut regions:Vec<SpriteRegion> = vec!();
+        let mut regions = HashMap::new();
         let mut width = 0;
         let mut height = 0;
         for entry in paths {
@@ -51,7 +54,7 @@ impl SpriteMap {
                             file_name: path.to_str().unwrap().to_string(),
                             name: path.file_stem().unwrap().to_str().unwrap().to_string()
                         };
-                        regions.push(region);
+                        regions.insert( region.name.clone(), region);
                         width = width + image_width;
                         height = cmp::max(height, image_height);
                     },
@@ -65,10 +68,11 @@ impl SpriteMap {
 
     }
 
-    // Render a previously laid out SpriteMap.
-    fn render(layout:(u32,u32,Vec<SpriteRegion>),output:&Path) -> SpriteMap {
-        let mut generated = image_lib::ImageBuffer::new(layout.0, layout.1);
-        for region in layout.2.iter() {
+    /// Render a previously laid out region.
+    /// Returns the path to the generated file.
+    fn render(width:u32, height:u32, regions:hash_map::Values<String,SpriteRegion>,output:&Path) -> PathBuf {
+        let mut generated = image_lib::ImageBuffer::new(width, height);
+        for region in regions {
             let image_path = Path::new(&region.file_name);
             match image_lib::open(&image_path) {
                 Ok(image) => {
@@ -82,6 +86,16 @@ impl SpriteMap {
         let ref mut fout = fs::File::create(output).unwrap();
         let generated_image = image_lib::ImageRgba8(generated);
         let _ = generated_image.save(fout, image_lib::PNG);
+        output.to_path_buf()
+    }
+
+    /// Generates a css sprite map from the files matching the glob pattern.
+    /// Notes:
+    ///   - the glob parameter is a folder for the time being
+    ///   - only PNG files can be made into css sprites at this time.
+    pub fn build(glob:&str,output:&Path) -> SpriteMap {
+        let layout = SpriteMap::layout(glob);
+        let output = SpriteMap::render(layout.0, layout.1, layout.2.values(), output);
         SpriteMap {
             width: layout.0,
             height: layout.1,
@@ -90,27 +104,27 @@ impl SpriteMap {
         }
     }
 
-    // Generates a css sprite map from the files matching the glob pattern.
-    // Only PNG files can be made into css sprites at this time.
-    pub fn build(glob:&str,output:&Path) -> SpriteMap {
-        let layout = SpriteMap::layout(glob);
-        let sprite_map = SpriteMap::render(layout, output);
-        sprite_map
-    }
+    /// Returns the image and background position for use in a single shorthand property.
+    /// For example:
+    ///    background: spriteMap.sprite("name")
+    /// could generate:
+    ///    url('/images/icons.png') 0 -24px no-repeat;
+    pub fn sprite(&self, name:&str) -> Option<String> {
+        self.regions.get(name).and_then(|r| Some(format!("url('/images/{}') -{}px 0 no-repeat", self.url,r.x)))
 
-    // Returns the image and background position for use in a single shorthand property.
-    // background: spriteMap.sprite("name").
-    pub fn sprite(&self, name:&str) -> String {
-        name.to_string()
     }
 }
 
 #[test]
 fn builds() {
     let sprite_map = SpriteMap::build("data/my-icons",&Path::new("data/out.png"));
-    let mut names:Vec<&str> = sprite_map.regions.iter().map(|r| &*r.name).collect();
+    let mut names:Vec<&str> = vec!();
+    for k in sprite_map.regions.keys() {
+       names.push(&*k);
+    }
     names.sort();
     assert_eq!(names,vec!("edit1","edit2","edit3"));
     assert_eq!(sprite_map.height, 32 as u32);
     assert_eq!(sprite_map.width, (names.len()*32) as u32);
+    assert_eq!(sprite_map.sprite("edit2").unwrap(),"url('/images/data/out.png') -32px 0 no-repeat".to_string());
 }
