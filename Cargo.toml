@@ -1,12 +1,16 @@
 [package]
-name = "sprite"
+name = "compass-sprite"
 version = "0.0.1"
 authors = ["Marius Seritan <github@seritan.net>"]
+keywords = ["compass","sprite"]
 
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/compass-rs/sprite.git"
 homepage = "https://github.com/compass-rs/sprite"
+
+[lib]
+name = "sprite"
 
 [dependencies.image]
 git = "https://github.com/PistonDevelopers/image"

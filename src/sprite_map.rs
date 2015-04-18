@@ -8,6 +8,7 @@ use image_lib::GenericImage;
 use image_lib::imageops::overlay;
 
 /// Information about one of the embedded images.
+#[derive(Debug)]
 pub struct SpriteRegion {
     pub x: u32,
     pub y: u32,
@@ -65,7 +66,7 @@ impl SpriteMap {
     }
 
     // Render a previously laid out SpriteMap.
-    fn render(layout:(u32,u32,Vec<SpriteRegion>),output:&str) -> SpriteMap {
+    fn render(layout:(u32,u32,Vec<SpriteRegion>),output:&Path) -> SpriteMap {
         let mut generated = image_lib::ImageBuffer::new(layout.0, layout.1);
         for region in layout.2.iter() {
             let image_path = Path::new(&region.file_name);
@@ -78,20 +79,20 @@ impl SpriteMap {
             }
 
         }
-        let ref mut fout = fs::File::create(&Path::new(output)).unwrap();
+        let ref mut fout = fs::File::create(output).unwrap();
         let generated_image = image_lib::ImageRgba8(generated);
         let _ = generated_image.save(fout, image_lib::PNG);
         SpriteMap {
             width: layout.0,
             height: layout.1,
             regions: layout.2,
-            url: output.to_string()
+            url: output.to_str().unwrap().to_string()
         }
     }
 
     // Generates a css sprite map from the files matching the glob pattern.
     // Only PNG files can be made into css sprites at this time.
-    pub fn build(glob:&str,output:&str) -> SpriteMap {
+    pub fn build(glob:&str,output:&Path) -> SpriteMap {
         let layout = SpriteMap::layout(glob);
         let sprite_map = SpriteMap::render(layout, output);
         sprite_map
@@ -106,7 +107,7 @@ impl SpriteMap {
 
 #[test]
 fn builds() {
-    let sprite_map = SpriteMap::build("data/my-icons","data/out.png");
+    let sprite_map = SpriteMap::build("data/my-icons",&Path::new("data/out.png"));
     let mut names:Vec<&str> = sprite_map.regions.iter().map(|r| &*r.name).collect();
     names.sort();
     assert_eq!(names,vec!("edit1","edit2","edit3"));
