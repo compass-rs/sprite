@@ -15,5 +15,15 @@ cargo run --example build-sprite data/my-icons/
 
 Running `target/debug/examples/build-sprite data/my-icons/`
 
-Sprite Map [SpriteRegion { x: 0, y: 0, width: 32, height: 32, file_name: "data/my-icons/edit1.png", name: "edit1" }, SpriteRegion { x: 32, y: 0, width: 32, height: 32, file_name: "data/my-icons/edit2.png", name: "edit2" }, SpriteRegion { x: 64, y: 0, width: 32, height: 32, file_name: "data/my-icons/edit3.png", name: "edit3" }]
+.edit3 {
+  background-url: url('/imagesbuild-sprite-out/sprite.png') -64px 0 no-repeat;
+ }
+
+.edit1 {
+  background-url: url('/imagesbuild-sprite-out/sprite.png') 0 0 no-repeat;
+ }
+
+.edit2 {
+  background-url: url('/imagesbuild-sprite-out/sprite.png') -32px 0 no-repeat;
+ }
 ```

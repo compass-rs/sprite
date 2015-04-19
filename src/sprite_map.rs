@@ -7,16 +7,7 @@ use std::cmp;
 use image_lib::GenericImage;
 use image_lib::imageops::overlay;
 use std::collections::{HashMap,hash_map};
-
-/// Output the value in pixels, using CSS conventions.
-pub fn px(x:u32) -> String {
-    format!("{}{}", x, if x!=0 {"px"} else {""})
-}
-
-/// Output the position, using CSS conventions.
-pub fn position(x:u32 , y:u32) -> String {
-    format!("{} {}", px(x), px(y) )
-}
+use css_formatter::CssFormatter;
 
 
 /// Information about one of the embedded images.
@@ -33,9 +24,10 @@ pub struct SpriteRegion {
 impl SpriteRegion {
 
     /// Output the position for this region, using the offsets.
-    pub fn position(&self, offset_x: u32, offset_y: u32) -> String {
-        position(self.x + offset_x, self.y + offset_y)
+    pub fn css_position(&self, offset_x: i32, offset_y: i32) -> String {
+        CssFormatter::position(self.x as i32 + offset_x, self.y as i32 + offset_y)
     }
+
 }
 
 /// The sprite map holding all the images for a given invocation.
@@ -112,15 +104,32 @@ impl SpriteMap {
     /// Notes:
     ///   - the glob parameter is a folder for the time being
     ///   - only PNG files can be made into css sprites at this time.
-    pub fn build(glob:&str,output:&Path) -> SpriteMap {
+    pub fn build(glob:&str,output:&Path, base_url:&str) -> SpriteMap {
         let layout = SpriteMap::layout(glob);
         let output = SpriteMap::render(layout.0, layout.1, layout.2.values(), output);
+        let mut url = base_url.to_string();
+        url.push_str(output.to_str().unwrap());
         SpriteMap {
             width: layout.0,
             height: layout.1,
             regions: layout.2,
-            url: output.to_str().unwrap().to_string()
+            url: url
         }
+    }
+
+
+    /// Return the region with the given name (compass API).
+    pub fn region(&self,name: &str) -> Option<&SpriteRegion> {
+        self.regions.get(name)
+    }
+
+    /// Return the names of all the regions (compass API).
+    pub fn names(&self) -> Vec<&str> {
+        let mut names:Vec<&str> = vec!();
+        for k in self.regions.keys() {
+           names.push(&*k);
+        }
+        names
     }
 
     /// Returns the image and background position for use in a single shorthand property.
@@ -128,27 +137,30 @@ impl SpriteMap {
     ///    background: spriteMap.sprite("name")
     /// could generate:
     ///    url('/images/icons.png') 0 -24px no-repeat;
-    pub fn sprite(&self, name:&str) -> Option<String> {
-        self.regions.get(name).and_then(|r|
-            Some(format!("url('/images/{}') {} no-repeat", self.url, r.position(0,0)
-        )))
-
+    pub fn css_background(&self, region: &SpriteRegion, offset_x: i32, offset_y: i32) -> String {
+        let position = CssFormatter::position( -(region.x as i32) + offset_x,  -(region.y as i32) + offset_y );
+        format!("url('{}') {} no-repeat", self.url, position)
     }
 
-    /// Returns the position for the original image in the sprite.
-    /// This is suitable for use as a value to background-position.
-    pub fn sprite_position(&self, name:&str, offset_x: u32, offset_y: u32) -> Option<String> {
-        self.regions.get(name).and_then(|r| Some(r.position(offset_x, offset_y)))
-    }
+
 }
 
 #[test]
+fn region() {
+    let region = SpriteRegion {
+        x: 10, y: 11,
+        width: 32, height: 33,
+        file_name: "a/foo.png".to_string(),
+        name: "foo".to_string()
+    };
+    assert_eq!(region.css_position(0,0), "10px 11px");
+    assert_eq!(region.css_position(-10,10), "0 21px");
+
+}
+
 fn builds() {
-    let sprite_map = SpriteMap::build("data/my-icons",&Path::new("data/out.png"));
-    let mut names:Vec<&str> = vec!();
-    for k in sprite_map.regions.keys() {
-       names.push(&*k);
-    }
+    let sprite_map = SpriteMap::build("data/my-icons", &Path::new("data/out.png"), "/images" );
+    let mut names = sprite_map.names();
     names.sort();
     assert_eq!(names,vec!("edit1","edit2","edit3"));
     assert_eq!(sprite_map.height, 32 as u32);

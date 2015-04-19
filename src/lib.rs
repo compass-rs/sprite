@@ -12,3 +12,4 @@ extern crate image as image_lib;
 pub use sprite_map::{SpriteRegion,SpriteMap};
 
 mod sprite_map;
+mod css_formatter;
