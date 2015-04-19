@@ -153,7 +153,4 @@ fn builds() {
     assert_eq!(names,vec!("edit1","edit2","edit3"));
     assert_eq!(sprite_map.height, 32 as u32);
     assert_eq!(sprite_map.width, (names.len()*32) as u32);
-    let edit2 = &*sprite_map.sprite("edit2").unwrap();
-    assert!( edit2.starts_with("url('/images/data/out.png') "));
-    assert!( edit2.ends_with("px 0 no-repeat"));
 }
