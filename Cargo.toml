@@ -1,6 +1,6 @@
 [package]
 name = "compass-sprite"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Marius Seritan <github@seritan.net>"]
 keywords = ["compass","sprite"]
 description = "Implement sprites for CSS usage on a web page"
