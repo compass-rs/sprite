@@ -8,6 +8,17 @@ use image_lib::GenericImage;
 use image_lib::imageops::overlay;
 use std::collections::{HashMap,hash_map};
 
+/// Output the value in pixels, using CSS conventions.
+pub fn px(x:u32) -> String {
+    format!("{}{}", x, if x!=0 {"px"} else {""})
+}
+
+/// Output the position, using CSS conventions.
+pub fn position(x:u32 , y:u32) -> String {
+    format!("{} {}", px(x), px(y) )
+}
+
+
 /// Information about one of the embedded images.
 #[derive(Debug)]
 pub struct SpriteRegion {
@@ -17,6 +28,14 @@ pub struct SpriteRegion {
     pub height: u32,
     pub file_name: String,
     pub name: String
+}
+
+impl SpriteRegion {
+
+    /// Output the position for this region, using the offsets.
+    pub fn position(&self, offset_x: u32, offset_y: u32) -> String {
+        position(self.x + offset_x, self.y + offset_y)
+    }
 }
 
 /// The sprite map holding all the images for a given invocation.
@@ -110,8 +129,16 @@ impl SpriteMap {
     /// could generate:
     ///    url('/images/icons.png') 0 -24px no-repeat;
     pub fn sprite(&self, name:&str) -> Option<String> {
-        self.regions.get(name).and_then(|r| Some(format!("url('/images/{}') -{}px 0 no-repeat", self.url,r.x)))
+        self.regions.get(name).and_then(|r|
+            Some(format!("url('/images/{}') {} no-repeat", self.url, r.position(0,0)
+        )))
 
+    }
+
+    /// Returns the position for the original image in the sprite.
+    /// This is suitable for use as a value to background-position.
+    pub fn sprite_position(&self, name:&str, offset_x: u32, offset_y: u32) -> Option<String> {
+        self.regions.get(name).and_then(|r| Some(r.position(offset_x, offset_y)))
     }
 }
 
